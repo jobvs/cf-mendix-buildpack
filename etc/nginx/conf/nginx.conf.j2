@@ -62,8 +62,10 @@ http {
     server {
         listen {{ nginx_port }};
         server_name _;
+        {% if not proxy_static_files_supported %}
         root {{ root }}/web/;
         index index.html index.htm;
+        {% endif %}
 
         # Disable logging by default
         set $logme 0;
@@ -94,13 +96,17 @@ http {
         {%- endmacro %}
         {% for location in locations %}
         location {{ location.path }} {
+            {% if not proxy_static_files_supported %}
             if ($request_uri ~ ^/(.*\.(css|js)|forms/.*|img/.*|pages/.*)\?[0-9]+$) {
                     expires 1y;
             }
+            {% endif %}
         {% if location.path == "/" %}
             if ($request_uri ~ ^/((index[\w-]*|login)\.html)?$) {
                 {{ self.default_headers_block() }}
+                {% if not proxy_static_files_supported %}
                 add_header Cache-Control "no-cache";
+                {% endif %}
             }
             proxy_pass http://mendix;
             {% if samesite_cookie_workaround_enabled %}

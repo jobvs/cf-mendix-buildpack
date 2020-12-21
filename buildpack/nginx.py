@@ -53,6 +53,10 @@ def _is_samesite_cookie_workaround_enabled(mx_version):
         return False
 
 
+def _is_proxying_static_files_supported(mx_version):
+    return mx_version >= MXVersion("9.1")
+
+
 def stage(buildpack_path, build_path, cache_path):
     logging.debug("Staging nginx...")
     shutil.copytree(
@@ -70,8 +74,9 @@ def stage(buildpack_path, build_path, cache_path):
 
 
 def configure(m2ee):
+    mx_version = MXVersion(str(m2ee.config.get_runtime_version()))
     samesite_cookie_workaround_enabled = _is_samesite_cookie_workaround_enabled(
-        MXVersion(str(m2ee.config.get_runtime_version()))
+        mx_version
     )
     if samesite_cookie_workaround_enabled:
         logging.info("SameSite cookie workaround is enabled")
@@ -87,6 +92,9 @@ def configure(m2ee):
             m2ee.config.get_runtime_version()
         ),
         samesite_cookie_workaround_enabled=samesite_cookie_workaround_enabled,
+        proxy_static_files_supported=_is_proxying_static_files_supported(
+            mx_version
+        ),
         locations=get_access_restriction_locations(),
         default_headers=get_http_headers(),
         nginx_port=str(util.get_nginx_port()),
